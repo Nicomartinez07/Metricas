@@ -2,6 +2,7 @@ import { getServerSession } from "next-auth"
 import { authOptions } from "@/lib/auth"
 import { redirect } from "next/navigation"
 import { LogOut, BarChart3 } from "lucide-react"
+import { LogoutButton } from "@/components/auth/LogoutButton"
 
 export default async function DashboardLayout({
   children,
@@ -33,7 +34,7 @@ export default async function DashboardLayout({
                 <p className="text-sm font-medium text-gray-900">{session.user?.name}</p>
                 <p className="text-xs text-gray-500">{session.user?.email}</p>
               </div>
-              <LogoutButton />
+              <LogoutButton /> {/* <--- Ahora es un componente limpio */}
             </div>
           </div>
         </div>
@@ -44,23 +45,5 @@ export default async function DashboardLayout({
         {children}
       </main>
     </div>
-  )
-}
-
-function LogoutButton() {
-  return (
-    <form action={async () => {
-      'use server'
-      const { signOut } = await import('next-auth/react')
-      await signOut({ redirect: true, callbackUrl: '/login' })
-    }}>
-      <button
-        type="submit"
-        className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-gray-700 hover:text-gray-900 hover:bg-gray-100 rounded-lg transition"
-      >
-        <LogOut className="w-4 h-4" />
-        <span className="hidden sm:inline">Salir</span>
-      </button>
-    </form>
   )
 }

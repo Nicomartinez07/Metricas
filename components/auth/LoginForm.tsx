@@ -79,7 +79,7 @@ export function LoginForm() {
       </button>
 
       <p className="text-xs text-gray-500 text-center mt-4">
-        Usuario de prueba: admin@automotriz.com / admin123
+        USUARIO DE PRUEBA: admin@automotriz.com / admin123
       </p>
     </form>
   )
