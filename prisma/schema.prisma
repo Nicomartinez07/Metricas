@@ -1,0 +1,27 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model Survey {
+  id          String   @id @default(cuid())
+  createdAt   DateTime @default(now())
+  email       String
+  serviceType ServiceType
+  rating      Int      // 1-10
+  
+  source      String?
+  formId      String?
+  
+  @@index([createdAt])
+  @@index([serviceType])
+}
+
+enum ServiceType {
+  VENTA
+  POSTVENTA
+}
