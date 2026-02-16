@@ -5,8 +5,19 @@ export const proxy = withAuth({
   // Opciones adicionales si las necesitas
 })
 
+export { default } from "next-auth/middleware"
+
 export const config = {
   matcher: [
-    '/((?!api/auth|login|_next/static|_next/image|favicon.ico).*)',
+    /*
+     * Match all paths except:
+     * - /api/webhook (para Google Forms)
+     * - /api/auth (NextAuth)
+     * - /login
+     * - _next/static
+     * - _next/image
+     * - favicon.ico
+     */
+    '/((?!api/webhook|api/auth|login|_next/static|_next/image|favicon.ico).*)',
   ]
 }
