@@ -17,9 +17,17 @@ const SurveySchema = z.object({
 const WEBHOOK_SECRET = process.env.WEBHOOK_SECRET || 'tu-secreto-aqui'
 
 export async function POST(request: NextRequest) {
+  console.log('🔔 Webhook recibido')
+  
   try {
+    // Verificar secreto
     const authHeader = request.headers.get('authorization')
+    console.log('🔑 Auth header:', authHeader ? 'Presente' : 'Ausente')
+    
     if (authHeader !== `Bearer ${WEBHOOK_SECRET}`) {
+      console.log('❌ Autenticación fallida')
+      console.log('Expected:', `Bearer ${WEBHOOK_SECRET}`)
+      console.log('Received:', authHeader)
       return NextResponse.json(
         { error: 'No autorizado' },
         { status: 401 }
@@ -27,7 +35,11 @@ export async function POST(request: NextRequest) {
     }
 
     const body = await request.json()
+    console.log('📦 Body recibido:', JSON.stringify(body, null, 2))
+    
+    // Validar datos
     const validatedData = SurveySchema.parse(body)
+    console.log('✅ Datos validados:', JSON.stringify(validatedData, null, 2))
 
     // Calcular promedio
     const promedioGeneral = (
@@ -37,6 +49,9 @@ export async function POST(request: NextRequest) {
       validatedData.recomendacion +
       validatedData.experiencia
     ) / 5
+
+    console.log('📊 Promedio calculado:', promedioGeneral)
+    console.log('💾 Intentando guardar en DB...')
 
     const survey = await prisma.survey.create({
       data: {
@@ -53,6 +68,8 @@ export async function POST(request: NextRequest) {
       }
     })
 
+    console.log('✅ Survey guardado con ID:', survey.id)
+
     return NextResponse.json({
       success: true,
       surveyId: survey.id,
@@ -60,17 +77,21 @@ export async function POST(request: NextRequest) {
     })
 
   } catch (error) {
-    console.error('Error en webhook:', error)
+    console.error('❌ Error en webhook:', error)
     
     if (error instanceof z.ZodError) {
+      console.error('Errores de validación:', error.issues)
       return NextResponse.json(
         { error: 'Datos inválidos', details: error.issues },
         { status: 400 }
       )
     }
 
+    // Log del error completo
+    console.error('Error stack:', error instanceof Error ? error.stack : 'Unknown error')
+
     return NextResponse.json(
-      { error: 'Error interno' },
+      { error: 'Error interno', message: error instanceof Error ? error.message : 'Unknown error' },
       { status: 500 }
     )
   }
@@ -81,6 +102,8 @@ export async function GET() {
     message: 'Webhook activo - Dashboard Automotriz',
     endpoint: '/api/webhook',
     method: 'POST',
+    webhookSecretConfigured: !!process.env.WEBHOOK_SECRET,
+    databaseConnected: !!process.env.DATABASE_URL,
     requiredHeaders: {
       'Authorization': 'Bearer YOUR_SECRET',
       'Content-Type': 'application/json'
