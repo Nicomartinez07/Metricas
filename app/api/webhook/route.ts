@@ -3,20 +3,21 @@ import { prisma } from '@/lib/prisma'
 import { ServiceType } from '@prisma/client'
 import { z } from 'zod'
 
-// Schema de validación
 const SurveySchema = z.object({
   email: z.string().email(),
   serviceType: z.enum(['VENTA', 'POSTVENTA']),
-  rating: z.number().min(1).max(10),
+  conformidad: z.number().min(1).max(10),
+  atencionCliente: z.number().min(1).max(10),
+  satisfaccion: z.number().min(1).max(10),
+  recomendacion: z.number().min(1).max(10),
+  experiencia: z.number().min(1).max(10),
   formId: z.string().optional(),
 })
 
-// Secret para autenticar requests
 const WEBHOOK_SECRET = process.env.WEBHOOK_SECRET || 'tu-secreto-aqui'
 
 export async function POST(request: NextRequest) {
   try {
-    // Verificar secreto en header
     const authHeader = request.headers.get('authorization')
     if (authHeader !== `Bearer ${WEBHOOK_SECRET}`) {
       return NextResponse.json(
@@ -26,16 +27,27 @@ export async function POST(request: NextRequest) {
     }
 
     const body = await request.json()
-
-    // Validar datos
     const validatedData = SurveySchema.parse(body)
 
-    // Guardar en DB
+    // Calcular promedio
+    const promedioGeneral = (
+      validatedData.conformidad +
+      validatedData.atencionCliente +
+      validatedData.satisfaccion +
+      validatedData.recomendacion +
+      validatedData.experiencia
+    ) / 5
+
     const survey = await prisma.survey.create({
       data: {
         email: validatedData.email,
         serviceType: validatedData.serviceType as ServiceType,
-        rating: validatedData.rating,
+        conformidad: validatedData.conformidad,
+        atencionCliente: validatedData.atencionCliente,
+        satisfaccion: validatedData.satisfaccion,
+        recomendacion: validatedData.recomendacion,
+        experiencia: validatedData.experiencia,
+        promedioGeneral,
         formId: validatedData.formId,
         source: 'google_forms'
       }
@@ -43,7 +55,8 @@ export async function POST(request: NextRequest) {
 
     return NextResponse.json({
       success: true,
-      surveyId: survey.id
+      surveyId: survey.id,
+      promedio: promedioGeneral
     })
 
   } catch (error) {
@@ -63,10 +76,9 @@ export async function POST(request: NextRequest) {
   }
 }
 
-// Endpoint GET para testear que funciona
 export async function GET() {
   return NextResponse.json({
-    message: 'Webhook activo',
+    message: 'Webhook activo - Dashboard Automotriz',
     endpoint: '/api/webhook',
     method: 'POST',
     requiredHeaders: {
@@ -76,7 +88,11 @@ export async function GET() {
     bodyExample: {
       email: 'cliente@ejemplo.com',
       serviceType: 'VENTA',
-      rating: 9,
+      conformidad: 9,
+      atencionCliente: 8,
+      satisfaccion: 9,
+      recomendacion: 10,
+      experiencia: 9,
       formId: 'form-123'
     }
   })

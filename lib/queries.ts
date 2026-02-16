@@ -17,27 +17,27 @@ export async function getDashboardMetrics(
     ...(serviceType && serviceType !== 'ALL' ? { serviceType: serviceType as PrismaServiceType } : {})
   }
 
-  const [totalSurveys, avgRating, ventaAvg, postventaAvg] = await Promise.all([
+  const [totalSurveys, avgGeneral, ventaAvg, postventaAvg] = await Promise.all([
     prisma.survey.count({ where: whereWithService }),
     prisma.survey.aggregate({
       where: whereWithService,
-      _avg: { rating: true }
+      _avg: { promedioGeneral: true }
     }),
     prisma.survey.aggregate({
       where: { ...whereBase, serviceType: PrismaServiceType.VENTA },
-      _avg: { rating: true }
+      _avg: { promedioGeneral: true }
     }),
     prisma.survey.aggregate({
       where: { ...whereBase, serviceType: PrismaServiceType.POSTVENTA },
-      _avg: { rating: true }
+      _avg: { promedioGeneral: true }
     })
   ])
 
   return {
     totalSurveys,
-    averageRating: avgRating._avg.rating || 0,
-    ventaAverage: ventaAvg._avg.rating || 0,
-    postventaAverage: postventaAvg._avg.rating || 0
+    averageRating: avgGeneral._avg.promedioGeneral || 0,
+    ventaAverage: ventaAvg._avg.promedioGeneral || 0,
+    postventaAverage: postventaAvg._avg.promedioGeneral || 0
   }
 }
 
@@ -55,7 +55,7 @@ export async function getTimeSeriesData(
     orderBy: { createdAt: 'asc' },
     select: {
       createdAt: true,
-      rating: true
+      promedioGeneral: true
     }
   })
 
@@ -66,7 +66,7 @@ export async function getTimeSeriesData(
     const dateKey = formatDateForRange(survey.createdAt, dateRange)
     const existing = groupedData.get(dateKey) || { total: 0, count: 0 }
     groupedData.set(dateKey, {
-      total: existing.total + survey.rating,
+      total: existing.total + survey.promedioGeneral,
       count: existing.count + 1
     })
   })
@@ -84,19 +84,98 @@ export async function getRatingDistribution(
 ) {
   const startDate = getStartDate(dateRange)
   
-  const surveys = await prisma.survey.groupBy({
-    by: ['rating'],
+  const surveys = await prisma.survey.findMany({
     where: {
       createdAt: { gte: startDate },
       ...(serviceType && serviceType !== 'ALL' ? { serviceType: serviceType as PrismaServiceType } : {})
     },
-    _count: { rating: true },
-    orderBy: { rating: 'asc' }
+    select: {
+      promedioGeneral: true
+    }
   })
 
-  return surveys.map(s => ({
-    rating: s.rating,
-    count: s._count.rating
+  // Agrupar por rating redondeado
+  const distribution = new Map<number, number>()
+  
+  surveys.forEach(survey => {
+    const rounded = Math.round(survey.promedioGeneral)
+    distribution.set(rounded, (distribution.get(rounded) || 0) + 1)
+  })
+
+  // Convertir a array y ordenar
+  return Array.from(distribution.entries())
+    .map(([rating, count]) => ({ rating, count }))
+    .sort((a, b) => a.rating - b.rating)
+}
+
+// NUEVA: Obtener métricas detalladas por categoría
+export async function getMetricsBreakdown(
+  dateRange: DateRange,
+  serviceType?: string
+) {
+  const startDate = getStartDate(dateRange)
+  
+  const whereCondition = {
+    createdAt: { gte: startDate },
+    ...(serviceType && serviceType !== 'ALL' ? { serviceType: serviceType as PrismaServiceType } : {})
+  }
+
+  const result = await prisma.survey.aggregate({
+    where: whereCondition,
+    _avg: {
+      conformidad: true,
+      atencionCliente: true,
+      satisfaccion: true,
+      recomendacion: true,
+      experiencia: true
+    }
+  })
+
+  return {
+    conformidad: result._avg.conformidad || 0,
+    atencionCliente: result._avg.atencionCliente || 0,
+    satisfaccion: result._avg.satisfaccion || 0,
+    recomendacion: result._avg.recomendacion || 0,
+    experiencia: result._avg.experiencia || 0
+  }
+}
+
+// NUEVA: Time series por métrica específica
+export async function getMetricTimeSeries(
+  metric: 'conformidad' | 'atencionCliente' | 'satisfaccion' | 'recomendacion' | 'experiencia',
+  dateRange: DateRange,
+  serviceType?: string
+) {
+  const startDate = getStartDate(dateRange)
+  
+  const surveys = await prisma.survey.findMany({
+    where: {
+      createdAt: { gte: startDate },
+      ...(serviceType && serviceType !== 'ALL' ? { serviceType: serviceType as PrismaServiceType } : {})
+    },
+    orderBy: { createdAt: 'asc' },
+    select: {
+      createdAt: true,
+      [metric]: true
+    }
+  })
+
+  // Agrupar por fecha
+  const groupedData = new Map<string, { total: number; count: number }>()
+  
+  surveys.forEach(survey => {
+    const dateKey = formatDateForRange(survey.createdAt, dateRange)
+    const value = survey[metric] as number
+    const existing = groupedData.get(dateKey) || { total: 0, count: 0 }
+    groupedData.set(dateKey, {
+      total: existing.total + value,
+      count: existing.count + 1
+    })
+  })
+
+  return Array.from(groupedData.entries()).map(([date, data]) => ({
+    date,
+    value: data.total / data.count
   }))
 }
 

@@ -18,3 +18,18 @@ export interface RatingDistribution {
   rating: number
   count: number
 }
+
+export interface MetricsBreakdown {
+  conformidad: number
+  atencionCliente: number
+  satisfaccion: number
+  recomendacion: number
+  experiencia: number
+}
+
+export interface MetricTimeSeries {
+  date: string
+  value: number
+}
+
+export type MetricType = 'conformidad' | 'atencionCliente' | 'satisfaccion' | 'recomendacion' | 'experiencia'

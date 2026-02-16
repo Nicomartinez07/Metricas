@@ -1,32 +1,59 @@
-import { getDashboardMetrics, getTimeSeriesData, getRatingDistribution } from '@/lib/queries'
+import { getDashboardMetrics, getTimeSeriesData, getRatingDistribution, getMetricsBreakdown, getMetricTimeSeries } from '@/lib/queries'
 import { MetricCard } from '@/components/dashboard/MetricCard'
 import { BarChart } from '@/components/dashboard/BarChart'
 import { LineChart } from '@/components/dashboard/LineChart'
 import { GaugeChart } from '@/components/dashboard/GaugeChart'
 import { DashboardFilters } from '@/components/dashboard/DashboardFilters'
+import { MetricsBreakdown } from '@/components/dashboard/MetricsBreakdown'
+import { MetricsMiniCharts } from '@/components/dashboard/MetricsMiniCharts'
+import { MetricsComparison } from '@/components/dashboard/MetricsComparison'
+import { MetricsRadar } from '@/components/dashboard/MetricsRadar'
 import { TrendingUp, MessageSquare, ShoppingCart, Wrench } from 'lucide-react'
-import { DateRange, ServiceType } from '@/types/queries'
+import { DateRange, ServiceType, MetricType } from '@/types/queries'
 
 interface PageProps {
-  searchParams: {
+  searchParams: Promise<{
     range?: string
     service?: string
-  }
+  }>
 }
 
 export default async function DashboardPage({ searchParams }: PageProps) {
-  // 👇 Desenrolla la Promise primero
   const params = await searchParams
-  
-  // Ahora puedes acceder a las propiedades
   const dateRange = (params.range || '1m') as DateRange
   const serviceType = (params.service || 'ALL') as ServiceType
 
-  const [metrics, timeSeries, distribution] = await Promise.all([
+  // Queries principales
+  const [
+    metrics,
+    timeSeries,
+    distribution,
+    metricsBreakdown,
+    ventaBreakdown,
+    postventaBreakdown
+  ] = await Promise.all([
     getDashboardMetrics(dateRange, serviceType),
     getTimeSeriesData(dateRange, serviceType),
-    getRatingDistribution(dateRange, serviceType)
+    getRatingDistribution(dateRange, serviceType),
+    getMetricsBreakdown(dateRange, serviceType),
+    getMetricsBreakdown(dateRange, 'VENTA'),
+    getMetricsBreakdown(dateRange, 'POSTVENTA')
   ])
+
+  // Time series para cada métrica
+  const metricTypes: MetricType[] = ['conformidad', 'atencionCliente', 'satisfaccion', 'recomendacion', 'experiencia']
+  const timeSeriesPromises = metricTypes.map(metric => 
+    getMetricTimeSeries(metric, dateRange, serviceType)
+  )
+  const timeSeriesData = await Promise.all(timeSeriesPromises)
+  
+  const metricsTimeSeries = {
+    conformidad: timeSeriesData[0],
+    atencionCliente: timeSeriesData[1],
+    satisfaccion: timeSeriesData[2],
+    recomendacion: timeSeriesData[3],
+    experiencia: timeSeriesData[4]
+  }
 
   return (
     <div className="space-y-6">
@@ -66,6 +93,9 @@ export default async function DashboardPage({ searchParams }: PageProps) {
         />
       </div>
 
+      {/* NUEVA SECCIÓN: Mini Charts de Evolución */}
+      <MetricsMiniCharts data={metricsTimeSeries} />
+
       {/* Charts Grid */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         <div className="lg:col-span-2">
@@ -79,6 +109,27 @@ export default async function DashboardPage({ searchParams }: PageProps) {
         </div>
       </div>
 
+      {/* NUEVA SECCIÓN: Desglose y Comparación */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <MetricsBreakdown data={metricsBreakdown} />
+        {serviceType === 'ALL' && (
+          <MetricsComparison 
+            venta={ventaBreakdown} 
+            postventa={postventaBreakdown} 
+          />
+        )}
+      </div>
+
+      {/* NUEVA SECCIÓN: Radar Chart */}
+      {serviceType === 'ALL' && (
+        <MetricsRadar 
+          data={metricsBreakdown}
+          ventaData={ventaBreakdown}
+          postventaData={postventaBreakdown}
+        />
+      )}
+
+      {/* Distribución de Ratings */}
       <div className="grid grid-cols-1 gap-6">
         <BarChart data={distribution} />
       </div>

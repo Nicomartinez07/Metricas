@@ -8,17 +8,28 @@ datasource db {
 }
 
 model Survey {
-  id          String   @id @default(cuid())
-  createdAt   DateTime @default(now())
+  id          String      @id @default(cuid())
+  createdAt   DateTime    @default(now())
   email       String
   serviceType ServiceType
-  rating      Int      // 1-10
   
-  source      String?
+  // Las 5 métricas
+  conformidad      Int // ¿Qué tan conforme está con el servicio?
+  atencionCliente  Int // Nivel de satisfacción con la atención al cliente
+  satisfaccion     Int // ¿Qué tan satisfecho está con los aspectos del servicio?
+  recomendacion    Int // ¿Qué tanto recomendaría nuestro servicio?
+  experiencia      Int // Puntúe la experiencia en general
+  
+  // Promedio calculado (para queries más rápidas)
+  promedioGeneral Float
+  
+  // Metadata
+  source      String?  @default("google_forms")
   formId      String?
   
   @@index([createdAt])
   @@index([serviceType])
+  @@index([createdAt, serviceType])
 }
 
 enum ServiceType {
