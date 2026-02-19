@@ -19,7 +19,7 @@ export function LineChart({ data }: LineChartProps) {
 
   return (
     <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
-      <h3 className="text-lg font-semibold text-gray-900 mb-4">Evolución Temporal</h3>
+      <h3 className="text-lg font-semibold text-gray-900 mb-4">Evolución Temporal (5 metricas en conjunto)</h3>
       <ResponsiveContainer width="100%" height={300}>
         <RechartsLine data={chartData}>
           <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />

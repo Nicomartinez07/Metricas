@@ -17,7 +17,7 @@ export const config = {
      * - _next/static
      * - _next/image
      * - favicon.ico
+     * /public/MGlogo_black.png
      */
-    '/((?!api/webhook|api/auth|login|_next/static|_next/image|favicon.ico).*)',
-  ]
+    '/((?!api/webhook|api/auth|login|_next/static|_next/image|favicon.ico|.*\\.(?:png|jpg|jpeg|svg|ico|webp)$).*)', ]
 }

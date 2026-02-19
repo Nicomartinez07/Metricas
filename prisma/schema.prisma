@@ -8,33 +8,33 @@ datasource db {
 }
 
 model User {
-  id            String   @id @default(cuid())
-  email         String   @unique
-  name          String?
-  dashboardLayout Json?  // <- AGREGAR ESTO para guardar el layout
-  createdAt     DateTime @default(now())
-  updatedAt     DateTime @updatedAt
+  id              String   @id @default(cuid())
+  email           String   @unique
+  name            String?
+  password        String   // Hash de la contraseña
+  dashboardLayout Json?    
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+  
+  @@index([email])
 }
 
 model Survey {
-  id          String      @id @default(cuid())
-  createdAt   DateTime    @default(now())
-  email       String
-  serviceType ServiceType
+  id               String      @id @default(cuid())
+  createdAt        DateTime    @default(now())
+  email            String
+  serviceType      ServiceType
   
-  // Las 5 métricas
-  conformidad      Int // ¿Qué tan conforme está con el servicio?
-  atencionCliente  Int // Nivel de satisfacción con la atención al cliente
-  satisfaccion     Int // ¿Qué tan satisfecho está con los aspectos del servicio?
-  recomendacion    Int // ¿Qué tanto recomendaría nuestro servicio?
-  experiencia      Int // Puntúe la experiencia en general
+  conformidad      Int
+  atencionCliente  Int
+  satisfaccion     Int
+  recomendacion    Int
+  experiencia      Int
   
-  // Promedio calculado (para queries más rápidas)
-  promedioGeneral Float
+  promedioGeneral  Float
   
-  // Metadata
-  source      String?  @default("google_forms")
-  formId      String?
+  source           String?     @default("google_forms")
+  formId           String?
   
   @@index([createdAt])
   @@index([serviceType])

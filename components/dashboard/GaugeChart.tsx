@@ -71,13 +71,6 @@ export function GaugeChart({ value, max = 10, title }: GaugeChartProps) {
           </div>
         </div>
       </div>
-
-      {/* Scale labels */}
-      <div className="flex justify-between text-xs text-gray-500 mt-2 px-4">
-        <span>0</span>
-        <span>5</span>
-        <span>10</span>
-      </div>
     </div>
   )
 }

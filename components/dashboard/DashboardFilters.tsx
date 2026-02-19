@@ -28,7 +28,7 @@ export function DashboardFilters() {
 
   const serviceTypes: { value: ServiceType; label: string }[] = [
     { value: 'ALL', label: 'Todos los servicios' },
-    { value: 'VENTA', label: 'Solo Ventas' },
+    { value: 'VENTA', label: 'Solo Venta' },
     { value: 'POSTVENTA', label: 'Solo Postventa' }
   ]
 
